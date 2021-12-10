@@ -20,31 +20,33 @@ def print_map():
     print("*" * (n_cols + 2))
 
 
-def get(x, y):
+def get(row, col):
     global n_rows, n_cols
-    # print(f"({x},{y}){0 <= x < n_cols} {0 <= y < n_rows}")
-    if (not 0 <= x < n_cols) or (not 0 <= y < n_rows):
+    if (not 0 <= row < n_rows) or (not 0 <= col < n_cols):
         return 100
     else:
-        return int(lines[y][x])
+        return int(lines[row][col])
 
 
 def part1():
     total = 0
+    low_points = set()
     for row in range(len(lines)):
         for col in range(len(lines[row])):
-            center = get(col, row)
-            above = get(col, row-1)
-            below = get(col, row+1)
-            left = get(col-1, row)
-            right = get(col+1, row)
+            center = get(row, col)
+            above = get(row-1, col)
+            below = get(row+1, col)
+            left = get(row, col-1)
+            right = get(row, col+1)
             if center < above and center < below and center < left and center < right:
                 total += center + 1
+                low_points.add((row, col))
     print(f"Part 1: Sum of risk levels of low points = {total}")
 
 
 def part2():
     print("Part 2: not yet written")
+
 
 
 def main():
