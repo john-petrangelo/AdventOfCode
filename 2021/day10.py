@@ -65,7 +65,7 @@ def check_line2(line):
             # print(f"Line corrupt, discarded")
             return 0
 
-    # Either the line was valid or incomplete, either way return 0
+    # Either the line was valid or incomplete
     if stack:
         total = 0;
         while stack:
@@ -73,9 +73,9 @@ def check_line2(line):
             total = total * 5 + scores2[c]
             # print(f"Line was incomplete, score {scores2[c]} for {c}, total {total}")
         return total
-    else:
-        print("Line valid")
-        return 0
+
+    print("Line valid")
+    return 0
 
 
 def part2(lines):
