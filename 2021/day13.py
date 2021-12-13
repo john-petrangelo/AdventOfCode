@@ -56,13 +56,18 @@ def fold_y(dots, fold_line):
     return (dots | new_dots) - discarded_dots
 
 
-def print_page(dots):
+def get_page_size(dots):
     max_x = 0
     max_y = 0
     for x, y in dots:
         max_x = max(x, max_x)
         max_y = max(y, max_y)
-    print(f"Maximum x={max_x} and maximum y={max_y}")
+
+    return max_x, max_y
+
+
+def print_page(dots):
+    max_x, max_y = get_page_size(dots)
 
     rows = []
     for y in range(max_y+1):
@@ -80,8 +85,6 @@ def main():
     dots, folds = read_input("input13.txt")
     print(f"Read complete, paper contains {len(dots)} dots, will fold {len(folds)} times")
 
-    print_page(dots)
-
     print("========== Folding ==========")
     n = 0
     for (fold_axis, fold_line) in folds:
@@ -94,9 +97,14 @@ def main():
             dots = fold_y(dots, fold_line)
 
         print(f"After fold there are {len(dots)} dots")
-        print_page(dots)
 
     print("========== Displaying page ==========")
+    print_page(dots)
+
+    print("========== Displaying flipped page ==========")
+    max_x, _ = get_page_size(dots)
+    dots = fold_x(dots, max_x+1)
+    print_page(dots)
 
 
 if __name__ == '__main__':
