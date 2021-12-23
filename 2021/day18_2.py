@@ -1,3 +1,6 @@
+from termcolor import colored
+
+
 LEFT = 0
 RIGHT = 1
 
@@ -72,11 +75,12 @@ def get_node(n, path):
     if not path:
         return n
 
-    path = path.copy()
     print(f"get_node n={n} path={path} ", end="")
+    path = path.copy()
     while len(path) > 1:
         n = n[path[0]]
         path.pop(0)
+
     print(f"node={n[path[0]]}")
     return n[path[0]]
 
@@ -96,28 +100,85 @@ def set_node(n, path, value):
 # However, then you must immediately reduce the number.
 def add(n1, n2):
     number = [n1, n2]
-    reduce(number)
+    # reduce(number)
     return number
 
 
-def node_on_left(path):
+def traverse_up(n, path, direction):
+    print(f"traverse_up path={path} direction={direction}")
+
+    # If the path is empty, there is no neighbor
     if not path:
+        print("traverse_up path is empty")
         return path
 
-    if path[-1] == RIGHT:
-        return path[:-1] + [LEFT]
+    # If the path has one element, then don't go up anymore
+    if len(path) == 1 and path[-1] == direction:
+        print("traverse_up path has one element, stop climbing")
+        return []
 
-    return path[:-1]
+    # If this node is on the traverse-direction (LEFT or RIGHT) of the parent, keep climbing
+    parent_path = path[:-1]
+    child_direction = parent_path[-1]
+    if child_direction == direction:
+        print("traverse_up same side, climbing up")
+        return traverse_up(n, parent_path, direction)
+
+    # We've found the pivotal ancestor
+    print(f"traverse_up found pivotal ancestor path={parent_path}")
+    return parent_path
 
 
-def node_on_right(path):
-    if not path:
+def traverse_down(n, path, direction):
+    print(f"traverse_down path={path} direction={direction}")
+
+    # If it's an integer, we found it
+    node = get_node(n, path)
+    if type(node) is int:
+        print(f"traverse_down found value={node}")
         return path
 
-    if path[-1] == LEFT:
-        return path[:-1] + [RIGHT]
+    # Otherwise, continue down in the desired direction (LEFT or RIGHT)
+    return traverse_down(n, path + [direction], direction)
 
-    return path[:-1]
+
+def next_node(n, path, direction):
+    print(f"next_node path={path} direction={direction}")
+    if direction == LEFT:
+        other_direction = RIGHT
+    else:
+        other_direction = LEFT
+
+    # Special case, if the next neighbor is in the same pair
+    if path[-1] != direction:
+        new_path = path[:-1] + [direction]
+        node = get_node(n, new_path)
+        print(f"next_node switching to the other node in pair, type={type(node)}")
+        if type(node) is int:
+            return new_path
+        else:
+            return traverse_down(n, new_path, other_direction)
+
+    # Look up and <direction> until you are a <other-direction> child or hit root.
+    # If you hit root, then there is no neighbor on that side
+    ancestor = traverse_up(n, path, direction)
+    print(f"next_node found ancestor ancestor={ancestor}")
+    if not ancestor:
+        print(f"next_node no neighbor found")
+        return []
+
+    # We have the pivotal ancestor, now look down the other side of the pair.
+    # If the other side is an int, we're done.
+    other_path = ancestor[:-1] + [direction]
+    node = get_node(n, other_path)
+    if type(node) is int:
+        return other_path
+
+    # Choose the <direction> child of the ancestor, now look down and
+    # <other direction> until you hit an integer
+    new_path = traverse_down(n, other_path + [other_direction], other_direction)
+    print(f"next_node new_path={new_path}")
+    return new_path
 
 
 def explode_left(n, path):
@@ -125,7 +186,7 @@ def explode_left(n, path):
 
     left = path
     while left:
-        left = node_on_left(left)
+        left = node_on_left(n, left)
         node = get_node(n, left)
         if type(node) == int:
             break
@@ -188,6 +249,20 @@ def reduce(n):
         explode_right(n, path)
 
 
+def verify(n, path, expected_left=None, expected_right=None):
+    print(colored(f"number={n}  path={path}", "green"))
+    print(colored(f"Looking for left neighbor for path {path}", "green"))
+    next_path = next_node(n, path, LEFT)
+    print(colored(f"Left neighbor for path {path} ({get_node(n, path)}) is {next_path} ({get_node(n, next_path)})",
+                  "grey", "on_green"))
+    print(colored(f"expected {expected_left}", "green" if next_path == expected_left else "red"))
+    print(colored(f"Looking for right neighbor for path {path}", "green"))
+    next_path = next_node(n, path, RIGHT)
+    print(colored(f"right neighbor for path {path} ({get_node(n, path)}) is {next_path} ({get_node(n, next_path)})",
+                  "grey", "on_green"))
+    print(colored(f"expected {expected_right}", "green" if next_path == expected_right else "red"))
+
+
 def main():
     # print("========== Reading input ==========")
     # numbers = read_input("test18a.txt")
@@ -204,8 +279,13 @@ def main():
     nsum = add(n1, n2)
     print(f"Test sum: {nsum}")
 
-    # print(add(numbers[0], numbers[1]))
-    # print(add(numbers[0], numbers[1]))
+    verify(nsum, [1, 0], [0, 1, 1, 1], [1, 1])
+    verify(nsum, [1, 1], [1, 0], [])
+    verify(nsum, [0, 1, 0], [0, 0, 1], [0, 1, 1, 0, 0])
+    verify(nsum, [0, 1, 1, 0, 1], [0, 1, 1, 0, 0], [0, 1, 1, 1])
+    verify(nsum, [0, 1, 1, 0, 0], [0, 1, 0], [0, 1, 1, 0, 1])
+    verify(nsum, [0, 0, 0, 0, 0], [], [0, 0, 0, 0, 1])
+    verify(nsum, [0, 0, 0, 0, 1], [0, 0, 0, 0, 0], [0, 0, 0, 1])
 
 
 if __name__ == '__main__':
