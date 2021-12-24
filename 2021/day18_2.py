@@ -1,3 +1,6 @@
+from copy import deepcopy
+from math import floor, ceil
+
 from termcolor import colored
 
 
@@ -45,8 +48,7 @@ def parse_number(line):
     line = line[1:]
 
     # Return the parsed number as well as the remaining line
-    number = (left, right)
-    reduce(number)
+    number = [left, right]
     return number, line
 
 
@@ -59,7 +61,7 @@ def read_input(filename):
                 break
 
             # Parse the line into a number
-            print(f"Parsing input line {line}")
+            # print(f"Parsing input line {line}")
             number, line = parse_number(line)
             numbers.append(number)
 
@@ -75,13 +77,13 @@ def get_node(n, path):
     if not path:
         return n
 
-    print(f"get_node n={n} path={path} ", end="")
+    # print(f"get_node n={n} path={path} ", end="")
     path = path.copy()
     while len(path) > 1:
         n = n[path[0]]
         path.pop(0)
 
-    print(f"node={n[path[0]]}")
+    # print(f"node={n[path[0]]}")
     return n[path[0]]
 
 
@@ -89,6 +91,10 @@ def get_node(n, path):
 # path is an array of 0/1 for left/right
 # value is the new value to store at this node
 def set_node(n, path, value):
+    if not path:
+        return
+
+    # print(f"set_node n={n} path={path} value={value}")
     path = path.copy()
     while len(path) > 1:
         n = n[path[0]]
@@ -99,43 +105,43 @@ def set_node(n, path, value):
 # To add n1 and n2, simply make a new number with n1 on the left and n2 on the right.
 # However, then you must immediately reduce the number.
 def add(n1, n2):
-    number = [n1, n2]
-    # reduce(number)
+    number = deepcopy([n1, n2])
+    reduce(number)
     return number
 
 
 def traverse_up(n, path, direction):
-    print(f"traverse_up path={path} direction={direction}")
+    # print(f"traverse_up path={path} direction={direction}")
 
     # If the path is empty, there is no neighbor
     if not path:
-        print("traverse_up path is empty")
+        # print("traverse_up path is empty")
         return path
 
     # If the path has one element, then don't go up anymore
     if len(path) == 1 and path[-1] == direction:
-        print("traverse_up path has one element, stop climbing")
+        # print("traverse_up path has one element, stop climbing")
         return []
 
     # If this node is on the traverse-direction (LEFT or RIGHT) of the parent, keep climbing
     parent_path = path[:-1]
     child_direction = parent_path[-1]
     if child_direction == direction:
-        print("traverse_up same side, climbing up")
+        # print("traverse_up same side, climbing up")
         return traverse_up(n, parent_path, direction)
 
     # We've found the pivotal ancestor
-    print(f"traverse_up found pivotal ancestor path={parent_path}")
+    # print(f"traverse_up found pivotal ancestor path={parent_path}")
     return parent_path
 
 
 def traverse_down(n, path, direction):
-    print(f"traverse_down path={path} direction={direction}")
+    # print(f"traverse_down path={path} direction={direction}")
 
     # If it's an integer, we found it
     node = get_node(n, path)
     if type(node) is int:
-        print(f"traverse_down found value={node}")
+        # print(f"traverse_down found value={node}")
         return path
 
     # Otherwise, continue down in the desired direction (LEFT or RIGHT)
@@ -143,7 +149,7 @@ def traverse_down(n, path, direction):
 
 
 def next_node(n, path, direction):
-    print(f"next_node path={path} direction={direction}")
+    # print(f"next_node path={path} direction={direction}")
     if direction == LEFT:
         other_direction = RIGHT
     else:
@@ -153,7 +159,7 @@ def next_node(n, path, direction):
     if path[-1] != direction:
         new_path = path[:-1] + [direction]
         node = get_node(n, new_path)
-        print(f"next_node switching to the other node in pair, type={type(node)}")
+        # print(f"next_node switching to the other node in pair, type={type(node)}")
         if type(node) is int:
             return new_path
         else:
@@ -162,9 +168,9 @@ def next_node(n, path, direction):
     # Look up and <direction> until you are a <other-direction> child or hit root.
     # If you hit root, then there is no neighbor on that side
     ancestor = traverse_up(n, path, direction)
-    print(f"next_node found ancestor ancestor={ancestor}")
+    # print(f"next_node found ancestor ancestor={ancestor}")
     if not ancestor:
-        print(f"next_node no neighbor found")
+        # print(f"next_node no neighbor found")
         return []
 
     # We have the pivotal ancestor, now look down the other side of the pair.
@@ -177,38 +183,36 @@ def next_node(n, path, direction):
     # Choose the <direction> child of the ancestor, now look down and
     # <other direction> until you hit an integer
     new_path = traverse_down(n, other_path + [other_direction], other_direction)
-    print(f"next_node new_path={new_path}")
+    # print(f"next_node new_path={new_path}")
     return new_path
 
 
 def explode_left(n, path):
-    print(f"explode_left n={n} path={path}")
+    # print(f"explode_left n={n} path={path}")
 
-    left = path
-    while left:
-        left = node_on_left(n, left)
-        node = get_node(n, left)
-        if type(node) == int:
-            break
+    left = next_node(n, path, LEFT)
+    if not left:
+        # print("explode_left Nowhere to explode")
+        return
 
-    print(f"Explode left to {left} TODO")
-
-    return left
+    exploded_node = get_node(n, path)
+    left_node = get_node(n, left)
+    # print(colored(f"Explode left to {left} ({left_node}) TODO", "yellow"))
+    set_node(n, left, exploded_node[0] + left_node)
 
 
 def explode_right(n, path):
-    print(f"explode_right path={path}")
+    # print(f"explode_right path={path}")
 
-    right = path
-    while right:
-        right = node_on_right(right)
-        node = get_node(n, right)
-        if type(node) == int:
-            break;
+    right = next_node(n, path, RIGHT)
+    if not right:
+        # print("explode_right Nowhere to explode")
+        return
 
-    print(f"Explode right to {right} TODO")
-
-    return right
+    exploded_node = get_node(n, path)
+    right_node = get_node(n, right)
+    # print(colored(f"Explode right to {right} ({right_node}) TODO", "yellow"))
+    set_node(n, right, exploded_node[1] + right_node)
 
 
 # Traverses the number tree and returns a path to a node that needs
@@ -240,13 +244,80 @@ def find_exploder(n, path):
         return path
 
 
+def find_splitter(n, path):
+    for i, node in enumerate(n):
+        if type(node) is int:
+            # print(f"find_splitter i={i} Found int - {node} at path {path + [i]}")
+            if node >= 10:
+                # print(f"find_splitter found splitter ({node}) at path {path}")
+                return path + [i]
+        else:
+            # print(f"find_splitter i={i} Found list - {node} at path {path + [i]}")
+            found = find_splitter(n[i], path + [i])
+            if found:
+                return found
+
+    return None
+
+
+def split(n, path):
+    old_node = get_node(n, path)
+    new_node = [floor(old_node / 2), ceil(old_node / 2)]
+    set_node(n, path, new_node)
+
+
 def reduce(n):
-    path = find_exploder(n, [])
-    print(f"reduce n={n} path={path}")
-    if path:
-        print(f"Found an exploder at path {path}")
-        explode_left(n, path)
-        explode_right(n, path)
+    while True:
+        # Look for nodes to explode
+        path = find_exploder(n, [])
+        if path:
+            # print(f"Found an exploder at path {path} ({get_node(n, path)})")
+            # Explode values to the left and right
+            explode_left(n, path)
+            explode_right(n, path)
+
+            # Now replace the exploded pair with a zero value
+            set_node(n, path, 0)
+            # print(f"reduce after exploded n={n}")
+
+            # Restart the loop
+            continue
+
+        # No nodes to explode, now look for nodes to split
+        path = find_splitter(n, [])
+        if path:
+            split(n, path)
+            continue
+
+        # If we get here then we didn't explode or split, so end the loop
+        break
+
+
+def magnitude(n):
+    # print(f"magnitude n={n} type={type(n)}")
+    if type(n) is int:
+        return n
+    else:
+        left = magnitude(n[0])
+        right = magnitude(n[1])
+        # print(f"magnitude pair n={n} left={left} right={right}")
+        return 3*left + 2*right
+
+
+def find_max_sum(numbers):
+    largest_magnitude = 0
+    for ni, i in enumerate(numbers):
+        for nj, j in enumerate(numbers):
+            if ni == nj:
+                print(f"Skipping {ni} == {nj}")
+                continue
+
+            m = magnitude(add(i, j))
+            print(f"{ni} {nj}: {i} + {j} => {m}")
+            if m > largest_magnitude:
+                print(f"Found new maximum {m}")
+                largest_magnitude = m
+    return largest_magnitude
 
 
 def verify(n, path, expected_left=None, expected_right=None):
@@ -265,27 +336,37 @@ def verify(n, path, expected_left=None, expected_right=None):
 
 def main():
     # print("========== Reading input ==========")
-    # numbers = read_input("test18a.txt")
-    # # numbers = read_input("input18.txt")
-    # print(f"Finished reading {len(numbers)} numbers")
-    # [print(f"{number}") for number in numbers]
-    #
-    # magnitude = None
-    # print(f"Magnitude of final sum is {magnitude}")
+    numbers = read_input("input18.txt")
 
-    # Temporary test
-    n1 = [[[[4, 3], 4], 4], [7, [[8, 4], 9]]]
-    n2 = [1, 1]
-    nsum = add(n1, n2)
-    print(f"Test sum: {nsum}")
+    # numbers = read_input("input18.txt")
+    print(f"Finished reading {len(numbers)} numbers")
+    [print(f"{number}") for number in numbers]
 
-    verify(nsum, [1, 0], [0, 1, 1, 1], [1, 1])
-    verify(nsum, [1, 1], [1, 0], [])
-    verify(nsum, [0, 1, 0], [0, 0, 1], [0, 1, 1, 0, 0])
-    verify(nsum, [0, 1, 1, 0, 1], [0, 1, 1, 0, 0], [0, 1, 1, 1])
-    verify(nsum, [0, 1, 1, 0, 0], [0, 1, 0], [0, 1, 1, 0, 1])
-    verify(nsum, [0, 0, 0, 0, 0], [], [0, 0, 0, 0, 1])
-    verify(nsum, [0, 0, 0, 0, 1], [0, 0, 0, 0, 0], [0, 0, 0, 1])
+    total = numbers[0]
+    for number in numbers[1:]:
+        total = add(total, number)
+
+    [print(f"{number}") for number in numbers]
+
+    print(f"total={total}")
+    print(f"Magnitude of final sum is {magnitude(total)}")
+
+    print(f"Largest magnitude of any two numbers is {find_max_sum(numbers)}")
+
+    # # Test number
+    # n1 = [[[[4, 3], 4], 4], [7, [[8, 4], 9]]]
+    # n2 = [1, 1]
+    # total = add(n1, n2)
+    # print(f"Test sum: {total}")
+
+    # # Unit tests for traversal
+    # verify(total, [1, 0], [0, 1, 1, 1], [1, 1])
+    # verify(total, [1, 1], [1, 0], [])
+    # verify(total, [0, 1, 0], [0, 0, 1], [0, 1, 1, 0, 0])
+    # verify(total, [0, 1, 1, 0, 1], [0, 1, 1, 0, 0], [0, 1, 1, 1])
+    # verify(total, [0, 1, 1, 0, 0], [0, 1, 0], [0, 1, 1, 0, 1])
+    # verify(total, [0, 0, 0, 0, 0], [], [0, 0, 0, 0, 1])
+    # verify(total, [0, 0, 0, 0, 1], [0, 0, 0, 0, 0], [0, 0, 0, 1])
 
 
 if __name__ == '__main__':
